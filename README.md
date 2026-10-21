@@ -18,7 +18,7 @@ cp .env.example .env          # set DATABASE_URL
 npm run setup                 # prisma generate + migrations
 npm run dev                   # http://localhost:3000   (or: npm run build && npm start)
 ```
-No PostgreSQL? `npm run db:local` starts an embedded one on port 5433:
+No PostgreSQL? `npm install --no-save embedded-postgres && npm run db:local` starts an embedded one on port 5433:
 `DATABASE_URL="postgresql://mahami:mahami@localhost:5433/mahami"`.
 
 ### Docker

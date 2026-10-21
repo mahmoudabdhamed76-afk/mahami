@@ -8,7 +8,7 @@ if not exist .env (
   echo DATABASE_URL="postgresql://mahami:mahami@localhost:5433/mahami"> .env
   echo Created .env using the built-in local PostgreSQL.
 )
-findstr /c:"localhost:5433" .env >nul && (start "Mahami DB" /min cmd /k npm run db:local & echo Starting local PostgreSQL... & timeout /t 10 /nobreak >nul)
+findstr /c:"localhost:5433" .env >nul && (if not exist node_modules\embedded-postgres call npm install --no-save embedded-postgres) & findstr /c:"localhost:5433" .env >nul && (start "Mahami DB" /min cmd /k npm run db:local & echo Starting local PostgreSQL... & timeout /t 10 /nobreak >nul)
 call npm run setup || (pause & exit /b 1)
 if not exist .next\BUILD_ID (call npm run build || (pause & exit /b 1))
 echo.

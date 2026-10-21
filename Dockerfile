@@ -3,7 +3,7 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=optional
+RUN npm ci
 COPY . .
 RUN npx prisma generate && npx next build
 
@@ -12,7 +12,7 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
 COPY --from=build /app/package.json /app/package-lock.json* ./
-RUN npm ci --omit=dev --omit=optional --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/src/generated ./src/generated

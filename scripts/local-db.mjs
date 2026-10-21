@@ -1,7 +1,9 @@
 // Zero-install local PostgreSQL for development (Windows / macOS / Linux).
 // Usage: npm run db:local   → starts Postgres on port 5433 with data in ./.pgdata
 // Then set DATABASE_URL="postgresql://mahami:mahami@localhost:5433/mahami" in .env
-import EmbeddedPostgres from "embedded-postgres";
+let EmbeddedPostgres;
+try { ({ default: EmbeddedPostgres } = await import("embedded-postgres")); }
+catch { console.error("Run once: npm install --no-save embedded-postgres"); process.exit(1); }
 import { existsSync } from "node:fs";
 import path from "node:path";
 
