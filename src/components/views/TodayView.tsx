@@ -1,16 +1,16 @@
 "use client";
-import { motion } from "motion/react";
-import { PartyPopper, Search, Sun } from "lucide-react";
+import { Search } from "lucide-react";
 import { useMemo } from "react";
 import { endOfDay, startOfDay } from "@/client/dates";
-import { plural, useFmt } from "@/client/format";
+import { useFmt } from "@/client/format";
 import { isDueToday, isOverdue, sortTasks, useNow, useSubtasksByTask, useTasks } from "@/client/hooks";
 import { useStore } from "@/client/store";
 import { useContextDraft, useUI } from "@/client/ui";
-import { EmptyState, IconButton, ProgressRing, Button } from "../ui/primitives";
+import { IconButton } from "../ui/primitives";
 import { Page } from "../ui/Page";
 import { TaskGroup } from "../tasks/TaskRow";
 import { SyncBadge } from "../SyncBadge";
+import { TodayHero } from "../TodayHero";
 
 function greeting(h: number) {
   if (h < 5) return "طابت ليلتك";
@@ -25,7 +25,6 @@ export function TodayView() {
   const tasks = useTasks();
   const subs = useSubtasksByTask();
   const user = useStore((s) => s.user);
-  const newTask = useUI((s) => s.newTask);
   const todayIso = startOfDay(now).toISOString();
   useContextDraft({ dueAt: todayIso, allDay: true }, [todayIso]);
 
@@ -47,7 +46,6 @@ export function TodayView() {
   }, [tasks, now]);
 
   const total = overdue.length + today.length + doneToday.length;
-  const ratio = total ? doneToday.length / total : 0;
   const first = user?.name?.split(" ")[0] ?? "";
   const remaining = overdue.length + today.length;
 
@@ -57,34 +55,12 @@ export function TodayView() {
       subtitle={fmt.date(now, { weekday: "long", day: "numeric", month: "long" })}
       actions={<><SyncBadge compact /><IconButton label="بحث" onClick={() => { useUI.getState().setTab("lists"); useUI.getState().setSearch(true); }}><Search size={21} /></IconButton></>}
       headerExtra={
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass mb-6 flex items-center gap-4 rounded-[24px] p-4">
-          <ProgressRing value={ratio} size={72} stroke={7}>
-            <span className="t-headline num">{fmt.pct(ratio)}</span>
-          </ProgressRing>
-          <div className="min-w-0 flex-1">
-            <p className="t-title3">{greeting(new Date(now).getHours())}{first ? `، ${first}` : ""}</p>
-            <p className="mt-0.5 t-sub text-label-2">
-              {total === 0
-                ? "لا توجد مهام لليوم بعد."
-                : remaining === 0
-                  ? "أنجزت كل مهام اليوم 🎉"
-                  : `أنجزت ${fmt.num(doneToday.length)} من ${fmt.num(total)} — باقي ${fmt.num(remaining)} ${plural(remaining, ["مهمة", "مهمتان", "مهام", "مهمة"])}`}
-            </p>
-            {overdue.length > 0 && <p className="mt-1 t-foot font-medium text-ios-red">{fmt.num(overdue.length)} {plural(overdue.length, ["مهمة متأخرة", "مهمتان متأخرتان", "مهام متأخرة", "مهمة متأخرة"])}</p>}
-          </div>
-        </motion.div>
+        <TodayHero greeting={`${greeting(new Date(now).getHours())}${first ? `، ${first}` : ""}`}
+          overdue={overdue} today={today} done={doneToday} allTasks={tasks} now={now} />
       }
     >
       {overdue.length > 0 && <TaskGroup title="متأخرة" tone="danger" tasks={overdue} subtasks={subs} now={now} />}
       {today.length > 0 && <TaskGroup title="مهام اليوم" tasks={today} subtasks={subs} now={now} showDate={false} />}
-      {remaining === 0 && (
-        <EmptyState
-          icon={doneToday.length ? <PartyPopper size={34} /> : <Sun size={34} />}
-          title={doneToday.length ? "يوم منجز بالكامل!" : "يومك فاضي"}
-          text={doneToday.length ? "استرح قليلًا، أو خطّط لغدٍ أفضل." : "أضف مهمة لليوم وابدأ بخطوة صغيرة."}
-          action={<Button onClick={() => newTask({ dueAt: startOfDay(now).toISOString(), allDay: true })}>إضافة مهمة لليوم</Button>}
-        />
-      )}
       {doneToday.length > 0 && (
         <TaskGroup title="أُنجزت اليوم" tasks={doneToday} subtasks={subs} now={now} showDate={false} collapsible defaultOpen={remaining === 0} />
       )}
