@@ -1,5 +1,5 @@
 "use client";
-import { Search } from "lucide-react";
+import { BarChart3, Search } from "lucide-react";
 import { useMemo } from "react";
 import { endOfDay, startOfDay } from "@/client/dates";
 import { useFmt } from "@/client/format";
@@ -11,6 +11,7 @@ import { Page } from "../ui/Page";
 import { TaskGroup } from "../tasks/TaskRow";
 import { SyncBadge } from "../SyncBadge";
 import { TodayHero } from "../TodayHero";
+import { AnalogClock } from "../AnalogClock";
 
 function greeting(h: number) {
   if (h < 5) return "طابت ليلتك";
@@ -52,8 +53,9 @@ export function TodayView() {
   return (
     <Page
       title="اليوم"
+      titleAccessory={<AnalogClock size={58} />}
       subtitle={fmt.date(now, { weekday: "long", day: "numeric", month: "long" })}
-      actions={<><SyncBadge compact /><IconButton label="بحث" onClick={() => { useUI.getState().setTab("lists"); useUI.getState().setSearch(true); }}><Search size={21} /></IconButton></>}
+      actions={<><SyncBadge compact /><IconButton label="الإحصائيات" onClick={() => useUI.getState().setTab("stats")}><BarChart3 size={20} /></IconButton><IconButton label="بحث" onClick={() => { useUI.getState().setTab("lists"); useUI.getState().setSearch(true); }}><Search size={21} /></IconButton></>}
       headerExtra={
         <TodayHero greeting={`${greeting(new Date(now).getHours())}${first ? `، ${first}` : ""}`}
           overdue={overdue} today={today} done={doneToday} allTasks={tasks} now={now} />

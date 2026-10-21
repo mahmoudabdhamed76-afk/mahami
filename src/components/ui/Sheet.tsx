@@ -17,8 +17,9 @@ function useDesktop() {
 
 /** iOS-style sheet: drag-to-dismiss bottom sheet on phones, floating glass modal on larger screens. */
 export function Sheet({ open, onClose, children, label, height = "auto", className }: {
-  open: boolean; onClose: () => void; children: ReactNode; label: string; height?: "auto" | "large"; className?: string;
+  open: boolean; onClose: () => void; children: ReactNode; label: string; height?: "auto" | "large" | "full"; className?: string;
 }) {
+  const full = height === "full";
   const controls = useDragControls();
   const desktop = useDesktop();
   const panel = useRef<HTMLDivElement>(null);
@@ -49,17 +50,18 @@ export function Sheet({ open, onClose, children, label, height = "auto", classNa
             ref={panel}
             className={cx(
               "glass-strong relative flex w-full flex-col overflow-hidden rounded-t-[28px] md:max-w-[560px] md:rounded-[28px]",
-              height === "large" ? "h-[92dvh] md:h-auto md:max-h-[86dvh]" : "max-h-[92dvh] md:max-h-[86dvh]",
+              full ? "h-[100dvh] !rounded-none pt-safe md:h-[86dvh] md:!rounded-[28px] md:pt-0"
+                : height === "large" ? "h-[92dvh] md:h-auto md:max-h-[86dvh]" : "max-h-[92dvh] md:max-h-[86dvh]",
               className,
             )}
             initial={desktop ? { opacity: 0, scale: 0.94, y: 12 } : { y: "100%" }}
             animate={desktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
             exit={desktop ? { opacity: 0, scale: 0.96, y: 8 } : { y: "100%" }}
             transition={{ type: "spring", stiffness: 420, damping: 40, mass: 0.9 }}
-            drag={desktop ? false : "y"} dragControls={controls} dragListener={false}
+            drag={desktop || full ? false : "y"} dragControls={controls} dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0.04, bottom: 0.9 }} onDragEnd={onDragEnd}
           >
-            <div className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-2 md:hidden" onPointerDown={(e) => controls.start(e)}>
+            <div className={cx("flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-2 md:hidden", full && "!hidden")} onPointerDown={(e) => controls.start(e)}>
               <span className="h-[5px] w-9 rounded-full bg-label-3" />
             </div>
             {children}

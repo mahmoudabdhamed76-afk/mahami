@@ -29,6 +29,8 @@ model User {
   tasks         Task[]
   subtasks      Subtask[]
   pushSubs      PushSubscription[]
+  notes         Note[]
+  noteAudio     NoteAudio[]
 }
 
 model Session {
@@ -104,6 +106,39 @@ model Subtask {
 
   @@index([userId, version])
   @@index([taskId])
+}
+
+model Note {
+  id              String    @id @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String    @default("")
+  body            String    @default("")
+  color           String?
+  pinned          Boolean   @default(false)
+  audioId         String?   @db.Uuid // voice note blob in NoteAudio
+  audioMime       String?
+  audioDuration   Float?    // seconds
+  audioPeaks      String?   // compact waveform (base64 of 0-255 bytes)
+  version         BigInt    @default(0)
+  clientUpdatedAt DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  @@index([userId, version])
+}
+
+/// Voice-note audio, stored once per id (immutable). Kept out of the sync stream.
+model NoteAudio {
+  id        String   @id @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PushSubscription {

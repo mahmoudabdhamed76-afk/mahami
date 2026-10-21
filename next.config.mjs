@@ -5,6 +5,7 @@ const csp = [
   "script-src 'self' 'unsafe-inline'" + (isProd ? "" : " 'unsafe-eval'"),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
   "font-src 'self' data:",
   "connect-src 'self'" + (isProd ? "" : " ws: wss:"),
   "worker-src 'self'",
@@ -28,7 +29,7 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
         ],
       },
       {

@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import type { TaskRec } from "@/lib/types";
 
-export type Tab = "today" | "lists" | "calendar" | "stats" | "settings";
+export type Tab = "today" | "lists" | "notes" | "calendar" | "stats" | "settings";
 export type SmartList = "today" | "scheduled" | "all" | "important" | "overdue" | "completed" | "nodate";
 export type Route = { name: "list"; list: SmartList | `cat:${string}` };
 
@@ -23,6 +23,7 @@ interface UI {
   editor: { id?: string; draft?: TaskDraft } | null;
   quickAdd: { draft?: TaskDraft } | null;
   categoryEditor: { id?: string } | null;
+  noteEditor: { id?: string; autoRecord?: boolean } | null;
   confirmState: Omit<ConfirmOpts, "resolve"> & { resolve: (ok: boolean) => void } | null;
   searchOpen: boolean;
   /** Defaults for the global + button, provided by the visible screen */
@@ -37,6 +38,8 @@ interface UI {
   closeQuickAdd(): void;
   editCategory(id?: string): void;
   closeCategory(): void;
+  openNote(id?: string, autoRecord?: boolean): void;
+  closeNote(): void;
   setSearch(v: boolean): void;
 }
 
@@ -60,6 +63,7 @@ export const useUI = create<UI>((set, get) => ({
   editor: null,
   quickAdd: null,
   categoryEditor: null,
+  noteEditor: null,
   confirmState: null,
   searchOpen: false,
   ctxDraft: undefined,
@@ -85,6 +89,8 @@ export const useUI = create<UI>((set, get) => ({
   closeQuickAdd: () => closeSheet(() => set({ quickAdd: null })),
   editCategory: (id) => { sheetEntry(); set({ categoryEditor: { id } }); },
   closeCategory: () => closeSheet(() => set({ categoryEditor: null })),
+  openNote: (id, autoRecord) => { sheetEntry(); set({ noteEditor: { id, autoRecord } }); },
+  closeNote: () => closeSheet(() => set({ noteEditor: null })),
   setSearch: (searchOpen) => set({ searchOpen }),
 }));
 
@@ -95,6 +101,7 @@ export function installHistory() {
     const s = useUI.getState();
     if (s.confirmState) { s.confirmState.resolve(false); return; }
     if (s.categoryEditor) { useUI.setState({ categoryEditor: null }); return; }
+    if (s.noteEditor) { useUI.setState({ noteEditor: null }); return; }
     if (s.editor) { useUI.setState({ editor: null }); return; }
     if (s.quickAdd) { useUI.setState({ quickAdd: null }); return; }
     if (s.stack.length) useUI.setState({ stack: s.stack.slice(0, -1), dir: -1 });

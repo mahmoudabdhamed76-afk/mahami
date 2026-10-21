@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "motion/react";
-import { BarChart3, CalendarDays, ListChecks, Plus, Settings, Sun, Search } from "lucide-react";
+import { BarChart3, CalendarDays, ListChecks, NotebookPen, Plus, Settings, Sun, Search } from "lucide-react";
 import { useUI, type Tab } from "@/client/ui";
 import { useStore } from "@/client/store";
 import { useCategories, useCategoryCounts, useNow, useSmartCounts } from "@/client/hooks";
@@ -9,13 +9,22 @@ import { CategoryIcon } from "./ui/icons";
 import { cx, Press, spring } from "./ui/primitives";
 import { SyncBadge } from "./SyncBadge";
 
-export const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
+export const ALL_TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "today", label: "اليوم", icon: Sun },
   { id: "lists", label: "المهام", icon: ListChecks },
+  { id: "notes", label: "ملاحظات", icon: NotebookPen },
   { id: "calendar", label: "التقويم", icon: CalendarDays },
   { id: "stats", label: "الإحصائيات", icon: BarChart3 },
   { id: "settings", label: "الإعدادات", icon: Settings },
 ];
+/** Phone tab bar keeps five; statistics live behind the chart button on «اليوم». */
+export const TABS = ALL_TABS.filter((t) => t.id !== "stats");
+
+const plus = () => {
+  const ui = useUI.getState();
+  if (ui.tab === "notes") ui.openNote();
+  else ui.newTask(ui.ctxDraft);
+};
 
 /** Floating liquid-glass tab bar (phones/tablets). */
 export function TabBar() {
@@ -46,7 +55,7 @@ export function TabBar() {
           );
         })}
       </div>
-      <Press onClick={() => newTask(useUI.getState().ctxDraft)} scale={0.9} aria-label="مهمة جديدة"
+      <Press onClick={plus} scale={0.9} aria-label={tab === "notes" ? "ملاحظة جديدة" : "مهمة جديدة"}
         className="glass-pill grid size-[62px] shrink-0 place-items-center rounded-full text-white">
         <Plus size={30} strokeWidth={2.4} />
       </Press>
@@ -87,7 +96,7 @@ export function Sidebar() {
         </button>
       </div>
       <nav className="mt-3 space-y-0.5 px-3" aria-label="التنقل الرئيسي">
-        {TABS.map((t) => {
+        {ALL_TABS.map((t) => {
           const active = tab === t.id;
           const I = t.icon;
           return (
@@ -112,7 +121,7 @@ export function Sidebar() {
         ))}
       </div>
       <div className="space-y-2 p-3">
-        <Press onClick={() => newTask(useUI.getState().ctxDraft)} className="glass-pill flex h-11 w-full items-center justify-center gap-2 rounded-2xl t-callout font-semibold text-white">
+        <Press onClick={plus} className="glass-pill flex h-11 w-full items-center justify-center gap-2 rounded-2xl t-callout font-semibold text-white">
           <Plus size={20} /> مهمة جديدة
           <kbd className="rounded-md bg-white/20 px-1.5 t-cap">N</kbd>
         </Press>

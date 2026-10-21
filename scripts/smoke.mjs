@@ -148,6 +148,23 @@ async function main() {
   }
   assert.ok(sent); ok("scheduler claimed the due reminder");
 
+  // Notes + voice-note audio
+  const noteId = randomUUID(), audioId = randomUUID();
+  const audioBytes = new Uint8Array(2048).map((_, i) => i % 256);
+  let ar = await fetch(`${BASE}/api/notes/audio/${audioId}`, { method: "PUT", headers: { "content-type": "audio/webm", cookie: a.cookie, origin: BASE }, body: audioBytes });
+  assert.equal(ar.status, 200); ok("voice note upload");
+  r = await a.req("POST", "/api/sync/push", { ops: [{ opId: "n1", entity: "note", op: "upsert", id: noteId, ts: iso(), data: { title: "فكرة", body: "نص الملاحظة", audioId, audioMime: "audio/webm", audioDuration: 3.2, color: "#FF9500" } }] });
+  assert.equal(r.data.results[0].status, "applied"); ok("note pushed");
+  r = await a.req("GET", "/api/sync/pull?since=0");
+  assert.ok(r.data.notes.find((n) => n.id === noteId && n.audioId === audioId)); ok("note pulled with audio reference");
+  ar = await fetch(`${BASE}/api/notes/audio/${audioId}`, { headers: { cookie: a.cookie } });
+  assert.equal(ar.status, 200); assert.equal((await ar.arrayBuffer()).byteLength, 2048); ok("voice note download");
+  ar = await fetch(`${BASE}/api/notes/audio/${audioId}`, { headers: { cookie: b.cookie } });
+  assert.equal(ar.status, 404); ok("voice notes are private");
+  r = await a.req("POST", "/api/sync/push", { ops: [{ opId: "n2", entity: "note", op: "delete", id: noteId, ts: iso(1000) }] });
+  ar = await fetch(`${BASE}/api/notes/audio/${audioId}`, { headers: { cookie: a.cookie } });
+  assert.equal(ar.status, 404); ok("deleting a note removes its audio");
+
   // Settings + logout
   r = await a.req("PATCH", "/api/auth/me", { settings: { theme: "dark", weekStart: 6 } });
   assert.equal(r.data.user.settings.theme, "dark"); ok("settings saved");

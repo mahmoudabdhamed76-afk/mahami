@@ -1,7 +1,7 @@
 import { prisma } from "./db";
-import { categoryData, subtaskData, taskData } from "@/lib/schemas";
-import type { CategoryRec, PullResponse, PushResult, SubtaskRec, SyncOp, TaskRec } from "@/lib/types";
-import type { Category, Subtask, Task } from "@/generated/prisma/client";
+import { categoryData, noteData, subtaskData, taskData } from "@/lib/schemas";
+import type { CategoryRec, NoteRec, PullResponse, PushResult, SubtaskRec, SyncOp, TaskRec } from "@/lib/types";
+import type { Category, Note, Subtask, Task } from "@/generated/prisma/client";
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 type Result = PushResult["results"][number];
@@ -29,8 +29,15 @@ export const serializeSubtask = (s: Subtask): SubtaskRec & { version: number } =
   version: Number(s.version),
 });
 
+export const serializeNote = (n: Note): NoteRec & { version: number } => ({
+  id: n.id, title: n.title, body: n.body, color: n.color, pinned: n.pinned,
+  audioId: n.audioId, audioMime: n.audioMime, audioDuration: n.audioDuration, audioPeaks: n.audioPeaks,
+  createdAt: n.createdAt.toISOString(), updatedAt: n.clientUpdatedAt.toISOString(), deletedAt: iso(n.deletedAt),
+  version: Number(n.version),
+});
+
 // ── Push: apply client operations with last-write-wins ──────────────────────
-const ENTITY_ORDER = { category: 0, task: 1, subtask: 2 } as const;
+const ENTITY_ORDER = { category: 0, task: 1, subtask: 2, note: 3 } as const;
 
 /**
  * Applies a batch of operations for one user inside a single transaction.
@@ -133,6 +140,31 @@ async function applyOne(tx: Tx, userId: string, op: SyncOp, ts: Date): Promise<R
     return ok("applied");
   }
 
+  if (op.entity === "note") {
+    const existing = await tx.note.findUnique({ where: { id: op.id } });
+    if (existing && existing.userId !== userId) return ok("rejected", "forbidden");
+    if (existing && existing.clientUpdatedAt > ts) return ok("stale");
+    if (op.op === "delete") {
+      if (!existing || existing.deletedAt) return ok("applied");
+      await tx.note.update({ where: { id: op.id }, data: { deletedAt: new Date(), clientUpdatedAt: ts } });
+      if (existing.audioId) await tx.noteAudio.deleteMany({ where: { id: existing.audioId, userId } });
+      return ok("applied");
+    }
+    const d = noteData.parse(op.data ?? {});
+    const fields = {
+      title: d.title, body: d.body, color: d.color, pinned: d.pinned,
+      audioId: d.audioId, audioMime: d.audioId ? d.audioMime : null, audioDuration: d.audioId ? d.audioDuration : null, audioPeaks: d.audioId ? d.audioPeaks : null,
+    };
+    await tx.note.upsert({
+      where: { id: op.id },
+      create: { id: op.id, userId, ...fields, clientUpdatedAt: ts, createdAt: d.createdAt ? new Date(d.createdAt) : ts },
+      update: { ...fields, clientUpdatedAt: ts, deletedAt: null },
+    });
+    // A replaced/removed recording frees its old audio
+    if (existing?.audioId && existing.audioId !== d.audioId) await tx.noteAudio.deleteMany({ where: { id: existing.audioId, userId } });
+    return ok("applied");
+  }
+
   // subtask
   const existing = await tx.subtask.findUnique({ where: { id: op.id } });
   if (existing && existing.userId !== userId) return ok("rejected", "forbidden");
@@ -159,19 +191,20 @@ async function applyOne(tx: Tx, userId: string, op: SyncOp, ts: Date): Promise<R
 export async function pullChanges(userId: string, since: number, limit = 500): Promise<PullResponse> {
   const where = { userId, version: { gt: BigInt(Math.max(0, Math.floor(since))) } };
   const args = { where, orderBy: { version: "asc" as const }, take: limit };
-  const [cats, tasks, subs] = await Promise.all([
+  const [cats, tasks, subs, notes] = await Promise.all([
     prisma.category.findMany(args),
     prisma.task.findMany(args),
     prisma.subtask.findMany(args),
+    prisma.note.findMany(args),
   ]);
 
   // If any table was truncated, cap the page at the smallest "last version"
   // among truncated tables so the cursor never skips unseen rows.
   let cap = Infinity;
-  for (const list of [cats, tasks, subs]) if (list.length === limit) cap = Math.min(cap, Number(list[list.length - 1].version));
+  for (const list of [cats, tasks, subs, notes]) if (list.length === limit) cap = Math.min(cap, Number(list[list.length - 1].version));
   const keep = <T extends { version: bigint }>(l: T[]) => (cap === Infinity ? l : l.filter((r) => Number(r.version) <= cap));
-  const c2 = keep(cats), t2 = keep(tasks), s2 = keep(subs);
-  const maxV = Math.max(since, ...[...c2, ...t2, ...s2].map((r) => Number(r.version)));
+  const c2 = keep(cats), t2 = keep(tasks), s2 = keep(subs), n2 = keep(notes);
+  const maxV = Math.max(since, ...[...c2, ...t2, ...s2, ...n2].map((r) => Number(r.version)));
 
   return {
     cursor: cap === Infinity ? maxV : cap,
@@ -179,5 +212,6 @@ export async function pullChanges(userId: string, since: number, limit = 500): P
     categories: c2.map(serializeCategory),
     tasks: t2.map(serializeTask),
     subtasks: s2.map(serializeSubtask),
+    notes: n2.map(serializeNote),
   };
 }

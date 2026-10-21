@@ -1,9 +1,9 @@
 "use client";
 import { api, ApiError, NetworkError } from "./api";
-import { clearAll, db, getMeta, loadAll, putRecords, setMeta, type OutboxItem, type StoreName } from "./idb";
+import { clearAll, db, getMeta, loadAll, pendingAudio, putAudio, putRecords, setMeta, type OutboxItem, type StoreName } from "./idb";
 import { getState, useStore } from "./store";
 import { uid } from "./uid";
-import type { CategoryRec, EntityName, PullResponse, PushResult, SubtaskRec, TaskRec, UserDTO } from "@/lib/types";
+import type { CategoryRec, EntityName, NoteRec, PullResponse, PushResult, SubtaskRec, TaskRec, UserDTO } from "@/lib/types";
 
 /**
  * Offline-first sync engine
@@ -14,7 +14,7 @@ import type { CategoryRec, EntityName, PullResponse, PushResult, SubtaskRec, Tas
  *  • Web Locks keep two tabs from syncing at once; BroadcastChannel keeps tabs' memory in sync.
  */
 
-const STORE: Record<EntityName, StoreName> = { category: "categories", task: "tasks", subtask: "subtasks" };
+const STORE: Record<EntityName, StoreName> = { category: "categories", task: "tasks", subtask: "subtasks", note: "notes" };
 const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("mahami") : null;
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -25,7 +25,7 @@ let es: EventSource | null = null;
 let started = false;
 
 // ── Local writes ────────────────────────────────────────────────────────────
-type AnyRec = CategoryRec | TaskRec | SubtaskRec;
+type AnyRec = CategoryRec | TaskRec | SubtaskRec | NoteRec;
 
 function payload(rec: AnyRec) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -75,6 +75,7 @@ export async function sync(): Promise<void> {
   st.setSync({ state: "syncing", error: undefined });
   try {
     await withLock(async () => {
+      await uploadAudio();
       await pushOutbox();
       await pullAll();
     });
@@ -115,6 +116,18 @@ async function pushOutbox() {
   }
 }
 
+/** Voice notes recorded offline are uploaded before their metadata is pushed. */
+async function uploadAudio() {
+  for (const a of await pendingAudio()) {
+    let res: Response;
+    try {
+      res = await fetch(`/api/notes/audio/${a.id}`, { method: "PUT", body: a.blob, headers: { "Content-Type": a.mime }, credentials: "same-origin" });
+    } catch { throw new NetworkError(); }
+    if (res.status === 401) throw new ApiError(401, "unauthorized");
+    if (res.ok || res.status === 413 || res.status === 415) await putAudio({ ...a, uploaded: true });
+  }
+}
+
 async function pullAll() {
   let cursor = (await getMeta<number>("cursor")) ?? 0;
   for (let guard = 0; guard < 200; guard++) {
@@ -129,7 +142,7 @@ async function pullAll() {
 async function applyRemote(r: PullResponse) {
   // Local edits not yet pushed win until they are pushed (they'll come back with a newer version)
   const pending = new Set((await (await db()).getAll("outbox")).map((o) => `${o.entity}:${o.id}`));
-  const groups: [EntityName, (CategoryRec | TaskRec | SubtaskRec)[]][] = [["category", r.categories], ["task", r.tasks], ["subtask", r.subtasks]];
+  const groups: [EntityName, AnyRec[]][] = [["category", r.categories], ["task", r.tasks], ["subtask", r.subtasks], ["note", r.notes ?? []]];
   let changed = false;
   for (const [entity, list] of groups) {
     const put: AnyRec[] = [];

@@ -18,9 +18,11 @@ import { ListView } from "./views/ListView";
 import { CalendarView } from "./views/CalendarView";
 import { StatsView } from "./views/StatsView";
 import { SettingsView } from "./views/SettingsView";
+import { NotesView } from "./views/NotesView";
+import { NoteEditor } from "./notes/NoteEditor";
 
 const ROOTS: Record<Tab, () => React.ReactElement> = {
-  today: TodayView, lists: ListsView, calendar: CalendarView, stats: StatsView, settings: SettingsView,
+  today: TodayView, lists: ListsView, notes: NotesView, calendar: CalendarView, stats: StatsView, settings: SettingsView,
 };
 
 function useTheme() {
@@ -47,10 +49,10 @@ function useShortcuts() {
       const t = e.target as HTMLElement;
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest("input,textarea,select,[contenteditable]")) return;
       const ui = useUI.getState();
-      if (ui.editor || ui.quickAdd || ui.categoryEditor) return;
-      if (e.key === "n" || e.key === "N" || e.key === "ى") { e.preventDefault(); ui.newTask(ui.ctxDraft); }
+      if (ui.editor || ui.quickAdd || ui.categoryEditor || ui.noteEditor) return;
+      if (e.key === "n" || e.key === "N" || e.key === "ى") { e.preventDefault(); if (ui.tab === "notes") ui.openNote(); else ui.newTask(ui.ctxDraft); }
       else if (e.key === "/") { e.preventDefault(); ui.setTab("lists"); ui.setSearch(true); }
-      else if (e.key >= "1" && e.key <= "5") ui.setTab((["today", "lists", "calendar", "stats", "settings"] as Tab[])[Number(e.key) - 1]);
+      else if (e.key >= "1" && e.key <= "6") ui.setTab((["today", "lists", "notes", "calendar", "stats", "settings"] as Tab[])[Number(e.key) - 1]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -110,6 +112,7 @@ export default function App() {
           <QuickAdd />
           <TaskEditor />
           <CategoryEditor />
+          <NoteEditor />
         </>
       )}
       <ConfirmSheet />

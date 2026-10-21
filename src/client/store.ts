@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import type { CategoryRec, SubtaskRec, TaskRec, UserDTO, UserSettings } from "@/lib/types";
+import type { CategoryRec, NoteRec, SubtaskRec, TaskRec, UserDTO, UserSettings } from "@/lib/types";
 
 export type Settings = Required<UserSettings>;
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,8 +22,8 @@ export interface Toast {
   icon?: "bell" | "check" | "trash" | "wifi-off" | "cloud";
 }
 
-type Entity = "categories" | "tasks" | "subtasks";
-type RecOf<E extends Entity> = E extends "categories" ? CategoryRec : E extends "tasks" ? TaskRec : SubtaskRec;
+type Entity = "categories" | "tasks" | "subtasks" | "notes";
+type RecOf<E extends Entity> = E extends "categories" ? CategoryRec : E extends "tasks" ? TaskRec : E extends "notes" ? NoteRec : SubtaskRec;
 
 interface State {
   phase: "boot" | "auth" | "app";
@@ -31,6 +31,7 @@ interface State {
   categories: Record<string, CategoryRec>;
   tasks: Record<string, TaskRec>;
   subtasks: Record<string, SubtaskRec>;
+  notes: Record<string, NoteRec>;
   settings: Settings;
   sync: { state: SyncState; pending: number; last: number | null; error?: string };
   online: boolean;
@@ -38,7 +39,7 @@ interface State {
 
   setPhase(p: State["phase"]): void;
   setUser(u: UserDTO | null): void;
-  hydrate(d: { categories: CategoryRec[]; tasks: TaskRec[]; subtasks: SubtaskRec[] }): void;
+  hydrate(d: { categories: CategoryRec[]; tasks: TaskRec[]; subtasks: SubtaskRec[]; notes: NoteRec[] }): void;
   apply<E extends Entity>(entity: E, put: RecOf<E>[], remove?: string[]): void;
   setSettings(patch: Partial<Settings>): void;
   setSync(patch: Partial<State["sync"]>): void;
@@ -63,6 +64,7 @@ export const useStore = create<State>((set, get) => ({
   categories: {},
   tasks: {},
   subtasks: {},
+  notes: {},
   settings: loadSettings(),
   sync: { state: "idle", pending: 0, last: null },
   online: typeof navigator === "undefined" ? true : navigator.onLine,
@@ -70,7 +72,7 @@ export const useStore = create<State>((set, get) => ({
 
   setPhase: (phase) => set({ phase }),
   setUser: (user) => set({ user }),
-  hydrate: (d) => set({ categories: byId(d.categories), tasks: byId(d.tasks), subtasks: byId(d.subtasks) }),
+  hydrate: (d) => set({ categories: byId(d.categories), tasks: byId(d.tasks), subtasks: byId(d.subtasks), notes: byId(d.notes) }),
   apply: (entity, put, remove = []) => {
     if (!put.length && !remove.length) return;
     const next = { ...(get()[entity] as Record<string, RecOf<typeof entity>>) };
@@ -91,7 +93,7 @@ export const useStore = create<State>((set, get) => ({
     setTimeout(() => get().dismissToast(id), ms);
   },
   dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
-  reset: () => set({ user: null, categories: {}, tasks: {}, subtasks: {}, sync: { state: "idle", pending: 0, last: null } }),
+  reset: () => set({ user: null, categories: {}, tasks: {}, subtasks: {}, notes: {}, sync: { state: "idle", pending: 0, last: null } }),
 }));
 
 export const getState = () => useStore.getState();

@@ -1,7 +1,7 @@
 // Shared types between server and client.
 
 export type Priority = 0 | 1 | 2 | 3;
-export type EntityName = "category" | "task" | "subtask";
+export type EntityName = "category" | "task" | "subtask" | "note";
 
 interface SyncMeta {
   id: string;
@@ -39,7 +39,18 @@ export interface SubtaskRec extends SyncMeta {
   sortOrder: number;
 }
 
-export type EntityRec = CategoryRec | TaskRec | SubtaskRec;
+export interface NoteRec extends SyncMeta {
+  title: string;
+  body: string;
+  color: string | null;
+  pinned: boolean;
+  audioId: string | null;
+  audioMime: string | null;
+  audioDuration: number | null;
+  audioPeaks: string | null;
+}
+
+export type EntityRec = CategoryRec | TaskRec | SubtaskRec | NoteRec;
 
 export interface SyncOp {
   opId: string;
@@ -61,6 +72,7 @@ export interface PullResponse {
   categories: CategoryRec[];
   tasks: TaskRec[];
   subtasks: SubtaskRec[];
+  notes: NoteRec[];
 }
 
 export interface UserSettings {

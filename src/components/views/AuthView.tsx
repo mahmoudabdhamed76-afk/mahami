@@ -1,12 +1,12 @@
 "use client";
-import { motion } from "motion/react";
-import { Eye, EyeOff } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { Cabinet } from "@lucasmarkes/hairline/react";
 import { useEffect, useState } from "react";
 import { api, ApiError, NetworkError } from "@/client/api";
 import { signedIn } from "@/client/sync";
 import type { UserDTO } from "@/lib/types";
-import { Button, Segmented, Spinner } from "../ui/primitives";
+import { cx, Spinner } from "../ui/primitives";
 
 export function AuthView() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -36,7 +36,6 @@ export function AuthView() {
     }
   };
 
-  const field = "h-[52px] w-full rounded-2xl bg-fill px-4 t-body outline-none placeholder:text-label-3 focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.45)]";
 
   return (
     <div className="scroll-y relative z-10 flex h-full flex-col items-center justify-center px-5 py-10">
@@ -52,25 +51,39 @@ export function AuthView() {
           </motion.p>
         </div>
 
-        <form onSubmit={submit} className="glass-strong space-y-3 rounded-[30px] p-5">
-          <Segmented id="auth" value={mode} onChange={(m) => { setMode(m); setErr(""); }}
-            options={[{ value: "login", label: "تسجيل الدخول" }, { value: "register", label: "حساب جديد" }]} />
-          {mode === "register" && (
-            <input className={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم" autoComplete="name" required minLength={2} aria-label="الاسم" />
-          )}
-          <input className={field} type="email" dir="ltr" style={{ textAlign: "right" }} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="البريد الإلكتروني" autoComplete="email" required aria-label="البريد الإلكتروني" />
-          <div className="relative">
-            <input className={field + " pe-12"} type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "register" ? "كلمة المرور (٨ أحرف على الأقل)" : "كلمة المرور"} autoComplete={mode === "login" ? "current-password" : "new-password"}
-              required minLength={mode === "register" ? 8 : 1} aria-label="كلمة المرور" />
-            <button type="button" onClick={() => setShow(!show)} aria-label={show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"} className="absolute inset-y-0 end-3 grid place-items-center text-label-2">
-              {show ? <EyeOff size={19} /> : <Eye size={19} />}
-            </button>
+        <form onSubmit={submit} className="space-y-3.5">
+          {/* Modern pill switch */}
+          <div className="relative mx-auto mb-5 flex w-full max-w-[300px] rounded-full bg-fill p-1" role="tablist">
+            {(["login", "register"] as const).map((m) => (
+              <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => { setMode(m); setErr(""); }}
+                className={cx("relative z-10 h-10 flex-1 rounded-full t-sub font-semibold transition-colors", mode === m ? "text-white" : "text-label-2")}>
+                {mode === m && <motion.span layoutId="auth-pill" className="auth-pill absolute inset-0 -z-10 rounded-full" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                {m === "login" ? "تسجيل الدخول" : "حساب جديد"}
+              </button>
+            ))}
           </div>
-          {err && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl bg-[color-mix(in_srgb,var(--red)_12%,transparent)] px-3 py-2 t-foot text-ios-red" role="alert">{err}</motion.p>}
-          <Button type="submit" className="h-[52px] w-full" disabled={busy}>
-            {busy ? <Spinner /> : mode === "login" ? "دخول" : "إنشاء الحساب"}
-          </Button>
+
+          <AnimatePresence initial={false}>
+            {mode === "register" && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <Field icon={<UserRound size={19} />} label="الاسم" value={name} onChange={setName} autoComplete="name" required minLength={2} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <Field icon={<Mail size={19} />} label="البريد الإلكتروني" type="email" ltr value={email} onChange={setEmail} autoComplete="email" required />
+          <Field icon={<LockKeyhole size={19} />} label={mode === "register" ? "كلمة المرور (٨ أحرف على الأقل)" : "كلمة المرور"} type={show ? "text" : "password"}
+            value={password} onChange={setPassword} autoComplete={mode === "login" ? "current-password" : "new-password"} required minLength={mode === "register" ? 8 : 1}
+            end={<button type="button" onClick={() => setShow(!show)} aria-label={show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"} className="grid size-9 place-items-center rounded-full text-label-2 hover:bg-fill">{show ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />
+
+          <AnimatePresence>
+            {err && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-2xl bg-[color-mix(in_srgb,var(--red)_12%,transparent)] px-4 py-2.5 t-foot text-ios-red" role="alert">{err}</motion.p>}
+          </AnimatePresence>
+
+          <motion.button type="submit" disabled={busy} whileTap={{ scale: 0.97 }}
+            className="auth-cta relative !mt-6 flex h-[58px] w-full items-center justify-center gap-2.5 overflow-hidden rounded-[20px] t-body font-bold text-white disabled:opacity-70">
+            <span className="auth-cta-shine" aria-hidden />
+            {busy ? <Spinner /> : <>{mode === "login" ? "دخول" : "إنشاء الحساب"}<ArrowLeft size={20} strokeWidth={2.6} /></>}
+          </motion.button>
         </form>
 
       </motion.div>
@@ -105,5 +118,29 @@ function AppName() {
         </defs>
       </svg>
     </div>
+  );
+}
+
+/** Floating-label field with a leading icon and a glowing focus ring. */
+function Field({ icon, label, value, onChange, ltr, end, ...rest }: {
+  icon: React.ReactNode; label: string; value: string; onChange: (v: string) => void; ltr?: boolean; end?: React.ReactNode;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  const [focus, setFocus] = useState(false);
+  const up = focus || value.length > 0;
+  return (
+    <label className={cx("auth-field relative flex h-[62px] items-center gap-3 rounded-[20px] px-4 transition-shadow", focus && "is-focus")}>
+      <span className={cx("transition-colors", focus ? "text-accent" : "text-label-3")}>{icon}</span>
+      <span className="relative h-full flex-1">
+        <span className={cx("pointer-events-none absolute inset-x-0 origin-right truncate transition-all duration-200",
+          up ? "top-2 t-cap font-semibold " + (focus ? "text-accent" : "text-label-2") : "top-1/2 -translate-y-1/2 t-callout text-label-3")}>{label}</span>
+        <input
+          {...rest} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}
+          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+          dir={ltr ? "ltr" : undefined} style={ltr ? { textAlign: "right" } : undefined}
+          className="absolute inset-x-0 bottom-2 h-7 w-full bg-transparent t-body outline-none"
+        />
+      </span>
+      {end}
+    </label>
   );
 }

@@ -35,9 +35,21 @@ export const subtaskData = z.object({
   createdAt: isoDate.optional(),
 });
 
+export const noteData = z.object({
+  title: z.string().max(300).default(""),
+  body: z.string().max(50000).default(""),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
+  pinned: z.boolean().default(false),
+  audioId: uuid.nullable().default(null),
+  audioMime: z.string().max(80).nullable().default(null),
+  audioDuration: z.number().min(0).max(60 * 60).nullable().default(null),
+  audioPeaks: z.string().max(2000).nullable().default(null),
+  createdAt: isoDate.optional(),
+});
+
 export const syncOp = z.object({
   opId: z.string().min(1).max(64),
-  entity: z.enum(["category", "task", "subtask"]),
+  entity: z.enum(["category", "task", "subtask", "note"]),
   op: z.enum(["upsert", "delete"]),
   id: uuid,
   ts: isoDate,

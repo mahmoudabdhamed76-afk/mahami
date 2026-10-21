@@ -8,8 +8,10 @@ import { cx, Press } from "./primitives";
  * iOS page: large title that collapses into a centered inline title on a
  * glass navigation bar as you scroll.
  */
-export function Page({ title, subtitle, back, actions, headerExtra, children, accessory }: {
+export function Page({ title, subtitle, back, actions, headerExtra, children, accessory, titleAccessory }: {
   title: ReactNode; subtitle?: ReactNode; back?: string; actions?: ReactNode; headerExtra?: ReactNode; children: ReactNode; accessory?: ReactNode;
+  /** Shown beside the large title (e.g. a live clock) */
+  titleAccessory?: ReactNode;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const pop = useUI((s) => s.pop);
@@ -37,9 +39,12 @@ export function Page({ title, subtitle, back, actions, headerExtra, children, ac
       </header>
       <div className="scroll-y relative z-10 flex-1" onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 36)}>
         <div className="mx-auto max-w-3xl px-4 pb-36 pt-[calc(env(safe-area-inset-top)+3.25rem)] lg:px-6 lg:pb-16">
-          <div className="mb-3 px-1">
-            <h1 className="t-large">{title}</h1>
-            {subtitle && <div className="mt-0.5 t-sub text-label-2">{subtitle}</div>}
+          <div className="mb-3 flex items-center gap-3 px-1">
+            <div className="min-w-0 flex-1">
+              <h1 className="t-large">{title}</h1>
+              {subtitle && <div className="mt-0.5 t-sub text-label-2">{subtitle}</div>}
+            </div>
+            {titleAccessory}
           </div>
           {headerExtra}
           {children}
