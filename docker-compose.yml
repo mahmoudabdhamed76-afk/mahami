@@ -1,0 +1,25 @@
+# One command: docker compose up -d  → http://localhost:3000
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mahami
+      POSTGRES_PASSWORD: mahami
+      POSTGRES_DB: mahami
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mahami"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://mahami:mahami@db:5432/mahami
+      VAPID_SUBJECT: mailto:admin@example.com
+    ports: ["3000:3000"]
+volumes:
+  pgdata:

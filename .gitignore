@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+.env
+.env.local
+src/generated
+.pgdata
+*.tsbuildinfo
+next-env.d.ts
+AGENTS.md

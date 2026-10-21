@@ -1,0 +1,125 @@
+// Mahami — Smart Task Manager schema
+// Sync model: every syncable row carries a monotonically increasing `version`
+// (assigned by a Postgres trigger from a global sequence, serialized per user),
+// a soft-delete tombstone (`deletedAt`) and a client last-write timestamp
+// (`clientUpdatedAt`) used for last-write-wins conflict resolution.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  name          String
+  passwordHash  String
+  timezone      String   @default("Africa/Cairo")
+  settings      Json     @default("{}")
+  calendarToken String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions      Session[]
+  categories    Category[]
+  tasks         Task[]
+  subtasks      Subtask[]
+  pushSubs      PushSubscription[]
+}
+
+model Session {
+  id         String   @id // sha256(token) — raw token only lives in the cookie
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+}
+
+model Category {
+  id              String    @id @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  color           String
+  icon            String
+  sortOrder       Float     @default(0)
+  version         BigInt    @default(0)
+  clientUpdatedAt DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+  tasks           Task[]
+
+  @@index([userId, version])
+}
+
+model Task {
+  id              String    @id @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  notes           String?
+  priority        Int       @default(0) // 0 none, 1 low, 2 medium, 3 high
+  categoryId      String?   @db.Uuid
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  dueAt           DateTime?
+  allDay          Boolean   @default(true)
+  remindAt        DateTime?
+  reminderOffset  Int?      // minutes before dueAt; null = absolute reminder
+  reminderSentAt  DateTime?
+  completed       Boolean   @default(false)
+  completedAt     DateTime?
+  sortOrder       Float     @default(0)
+  version         BigInt    @default(0)
+  clientUpdatedAt DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+  subtasks        Subtask[]
+
+  @@index([userId, version])
+  @@index([userId, dueAt])
+  @@index([remindAt])
+}
+
+model Subtask {
+  id              String    @id @db.Uuid
+  userId          String    @db.Uuid
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId          String    @db.Uuid
+  task            Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title           String
+  done            Boolean   @default(false)
+  sortOrder       Float     @default(0)
+  version         BigInt    @default(0)
+  clientUpdatedAt DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  @@index([userId, version])
+  @@index([taskId])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AppSetting {
+  key   String @id
+  value String
+}
