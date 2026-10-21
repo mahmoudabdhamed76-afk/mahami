@@ -82,7 +82,11 @@ export interface UserSettings {
   weekStart?: 0 | 1 | 6;
   autoRemind?: boolean;
   defaultReminderTime?: string; // "09:00" for all-day tasks
+  runwayStyle?: RunwayStyle;
 }
+
+export const RUNWAY_STYLES = ["lanes", "radar", "road", "metro", "countdown", "orbit", "capsules"] as const;
+export type RunwayStyle = (typeof RUNWAY_STYLES)[number];
 
 export interface UserDTO {
   id: string;

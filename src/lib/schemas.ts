@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RUNWAY_STYLES } from "./types";
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const uuid = z.string().regex(uuidRe, "معرّف غير صالح");
@@ -68,6 +69,7 @@ export const settingsSchema = z.object({
   weekStart: z.union([z.literal(0), z.literal(1), z.literal(6)]).optional(),
   autoRemind: z.boolean().optional(),
   defaultReminderTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  runwayStyle: z.enum(RUNWAY_STYLES).optional(),
 });
 
 export const emailSchema = z.string().trim().toLowerCase().max(200).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "البريد الإلكتروني غير صالح");

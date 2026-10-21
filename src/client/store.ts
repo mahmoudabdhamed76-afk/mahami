@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weekStart: 6,
   autoRemind: true,
   defaultReminderTime: "09:00",
+  runwayStyle: "lanes",
 };
 
 export type SyncState = "idle" | "syncing" | "offline" | "error";

@@ -17,6 +17,7 @@ import { Button, cx, Segmented, Spinner, Switch } from "../ui/primitives";
 import { Page } from "../ui/Page";
 import { Sheet, SheetHeader } from "../ui/Sheet";
 import { SyncBadge } from "../SyncBadge";
+import { RunwayStylePicker } from "../runway/Picker";
 
 const ACCENTS: [string, string][] = [["blue", "#007AFF"], ["indigo", "#5856D6"], ["purple", "#AF52DE"], ["pink", "#FF2D55"], ["orange", "#FF9500"], ["green", "#34C759"], ["teal", "#30B0C7"]];
 
@@ -118,6 +119,10 @@ export function SettingsView() {
           <Segmented id="digits" className="w-36" value={settings.digits} onChange={(v) => saveSettings({ digits: v })}
             options={[{ value: "arab", label: "١٢٣" }, { value: "latn", label: "123" }]} />
         </Row>
+      </Group>
+
+      <Group title="شكل «مهامي في الطريق» في صفحة اليوم">
+        <RunwayStylePicker value={settings.runwayStyle} onChange={(v) => saveSettings({ runwayStyle: v })} />
       </Group>
 
       <Group title="التقويم">
