@@ -1,7 +1,8 @@
 "use client";
 import { motion } from "motion/react";
-import { Bell, CalendarDays, CloudOff, Eye, EyeOff, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { Cabinet } from "@lucasmarkes/hairline/react";
+import { useEffect, useState } from "react";
 import { api, ApiError, NetworkError } from "@/client/api";
 import { signedIn } from "@/client/sync";
 import type { UserDTO } from "@/lib/types";
@@ -15,6 +16,8 @@ export function AuthView() {
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => { setReduce(matchMedia("(prefers-reduced-motion: reduce)").matches); }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +41,15 @@ export function AuthView() {
   return (
     <div className="scroll-y relative z-10 flex h-full flex-col items-center justify-center px-5 py-10">
       <motion.div initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 26 }} className="w-full max-w-[420px]">
-        <div className="mb-7 flex flex-col items-center text-center">
-          <motion.img src="/icons/icon-192.png" alt="" className="mb-4 size-[84px] rounded-[22px] shadow-[0_18px_40px_-12px_rgb(var(--accent-rgb)/0.6)]"
-            initial={{ rotate: -8, scale: 0.8 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 14, delay: 0.1 }} />
-          <h1 className="t-large">مهامي</h1>
-          <p className="mt-1 t-callout text-label-2">نظّم يومك بهدوء… وأنجز أكثر.</p>
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="relative -mb-4 -mt-6 h-[300px] w-full max-w-[380px]">
+            <div className="auth-halo" aria-hidden />
+            <Cabinet className="cab-fig h-full w-full !aspect-auto" play={!reduce} intensity={0.8} label="خزانة مهام بأدراج ملوّنة بتطلع وتدخل" />
+          </div>
+          <AppName />
+          <motion.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.5 }} className="mt-1 t-callout text-label-2">
+            نظّم يومك بهدوء… وأنجز أكثر.
+          </motion.p>
         </div>
 
         <form onSubmit={submit} className="glass-strong space-y-3 rounded-[30px] p-5">
@@ -66,23 +73,37 @@ export function AuthView() {
           </Button>
         </form>
 
-        <div className="mt-6 grid grid-cols-2 gap-2.5 text-label-2">
-          {[
-            [Sparkles, "إضافة ذكية باللغة العربية"],
-            [CloudOff, "يعمل بدون إنترنت"],
-            [Bell, "تذكيرات وإشعارات"],
-            [CalendarDays, "تقويم ومزامنة فورية"],
-          ].map(([I, t], i) => {
-            const Ic = I as typeof Bell;
-            return (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                className="glass flex items-center gap-2 rounded-2xl px-3 py-2.5 t-foot">
-                <Ic size={16} className="shrink-0 text-accent" />{t as string}
-              </motion.div>
-            );
-          })}
-        </div>
       </motion.div>
+    </div>
+  );
+}
+
+/** «مهامي» — the word draws itself in (right→left wipe), then a light sweeps through it, and a check underlines it. */
+function AppName() {
+  return (
+    <div className="relative mt-1 inline-flex flex-col items-center">
+      <motion.h1
+        className="app-name relative text-[3.4rem] font-bold leading-[1.15]"
+        initial={{ clipPath: "inset(0 0 0 100%)", filter: "blur(10px)", y: 8 }}
+        animate={{ clipPath: "inset(0 0 0 0%)", filter: "blur(0px)", y: 0 }}
+        transition={{ duration: 1.1, ease: [0.32, 0.72, 0, 1], delay: 0.15 }}
+      >
+        مهامي
+      </motion.h1>
+      <svg viewBox="0 0 160 22" className="-mt-1 h-[22px] w-[150px]" aria-hidden>
+        <motion.path
+          d="M150 12 C 120 18, 70 18, 40 12 L 30 10 L 22 18 L 6 3"
+          fill="none" stroke="url(#name-ink)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"
+          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: "easeInOut", delay: 1.05 }}
+        />
+        <defs>
+          <linearGradient id="name-ink" x1="1" y1="0" x2="0" y2="0">
+            <stop offset="0%" stopColor="var(--accent)" />
+            <stop offset="55%" stopColor="#AF52DE" />
+            <stop offset="100%" stopColor="#FF2D55" />
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
   );
 }
