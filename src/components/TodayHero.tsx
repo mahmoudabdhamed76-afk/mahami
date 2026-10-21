@@ -3,19 +3,19 @@ import { Terrain } from "@lucasmarkes/hairline/react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlarmClock, CalendarClock, CheckCheck, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { addDays, dayKey, startOfDay } from "@/client/dates";
+import { startOfDay } from "@/client/dates";
 import { plural, useFmt } from "@/client/format";
 import { isOverdue } from "@/client/hooks";
 import { useUI } from "@/client/ui";
 import type { TaskRec } from "@/lib/types";
 import { cx } from "./ui/primitives";
+import { TaskRunway } from "./TaskRunway";
 
-const DAYS = 14;
 
 /**
  * Today hero, Ozarex-style: a living Hairline terrain (plays by itself and
  * answers the pointer), a callout that cycles through the day's tasks, the
- * remaining-tasks figure, and a 14-day completion line.
+ * remaining-tasks figure, and the runway where timed tasks travel toward «now».
  */
 export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
   greeting: string; overdue: TaskRec[]; today: TaskRec[]; done: TaskRec[]; allTasks: TaskRec[]; now: number;
@@ -40,20 +40,6 @@ export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
   const total = queue.length + done.length;
   const remaining = queue.length;
 
-  // Completions per day for the last 14 days (today last)
-  const series = useMemo(() => {
-    const per = new Map<string, number>();
-    for (const t of allTasks) if (t.completed && t.completedAt) {
-      const k = dayKey(new Date(t.completedAt));
-      per.set(k, (per.get(k) ?? 0) + 1);
-    }
-    const t0 = startOfDay(now);
-    return Array.from({ length: DAYS }, (_, i) => {
-      const d = addDays(t0, i - DAYS + 1);
-      return { d, n: per.get(dayKey(d)) ?? 0 };
-    });
-  }, [allTasks, now]);
-  const sum14 = series.reduce((a, b) => a + b.n, 0);
 
   const callout = current ? (
     <>
@@ -133,48 +119,7 @@ export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
         </div>
       </div>
 
-      <Spark series={series} sum={sum14} />
+      <TaskRunway tasks={allTasks} />
     </motion.section>
-  );
-}
-
-/** 14-day completion line (today on the left, as RTL time reads). */
-function Spark({ series, sum }: { series: { d: Date; n: number }[]; sum: number }) {
-  const fmt = useFmt();
-  const W = 320, H = 92, PAD = 8;
-  const max = Math.max(1, ...series.map((s) => s.n));
-  const pts = series.map((s, i) => {
-    const x = W - PAD - (i / (series.length - 1)) * (W - PAD * 2); // oldest at right, today at left
-    const y = H - 16 - (s.n / max) * (H - 34);
-    return [x, y] as const;
-  });
-  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H - 16} L${pts[0][0].toFixed(1)},${H - 16} Z`;
-  const [ex, ey] = pts[pts.length - 1];
-  const mid = series[Math.floor(series.length / 2)].d;
-  return (
-    <div className="relative z-10 -mx-2 pb-2">
-      <div className="flex items-center justify-between px-2 t-cap text-label-2">
-        <span>المنجز · آخر {fmt.num(DAYS)} يوم</span>
-        <span className="font-semibold text-label"><bdi className="num">{fmt.num(sum)}</bdi> {plural(sum, ["مهمة", "مهمتان", "مهام", "مهمة"])}</span>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-[92px] w-full" role="img" aria-label={`أنجزت ${sum} مهمة في آخر ${DAYS} يومًا`}>
-        <defs>
-          <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.32" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[0.33, 0.66].map((f) => <line key={f} x1={PAD} x2={W - PAD} y1={(H - 16) * f + 4} y2={(H - 16) * f + 4} stroke="var(--separator)" strokeDasharray="2 4" />)}
-        <motion.path d={area} fill="url(#spark-fill)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />
-        <motion.path d={line} fill="none" stroke="var(--accent)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: [0.32, 0.72, 0, 1] }} />
-        <circle cx={ex} cy={ey} r={9} fill="var(--accent)" opacity={0.18} className="hero-pulse" />
-        <circle cx={ex} cy={ey} r={4.5} fill="var(--accent)" stroke="white" strokeWidth={2} />
-        <text x={ex} y={H - 2} textAnchor="end" fontSize="10" fill="var(--label-2)">النهارده</text>
-        <text x={W / 2} y={H - 2} textAnchor="middle" fontSize="10" fill="var(--label-3)">{fmt.date(mid, { day: "numeric", month: "numeric" })}</text>
-        <text x={W - PAD} y={H - 2} textAnchor="start" fontSize="10" fill="var(--label-3)">{fmt.date(series[0].d, { day: "numeric", month: "numeric" })}</text>
-      </svg>
-    </div>
   );
 }

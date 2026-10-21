@@ -246,7 +246,28 @@ input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: p
 .hero-pulse { transform-box: fill-box; transform-origin: center; animation: heroPulse 1.8s ease-out infinite; }
 @keyframes heroPulse { from { transform: scale(0.6); opacity: 0.5; } to { transform: scale(1.8); opacity: 0; } }
 
+
+/* ── Task runway: timed tasks travel toward the «الآن» dock ───────────── */
+.runway {
+  background: linear-gradient(to left, rgb(var(--accent-rgb) / 0.10), rgb(var(--accent-rgb) / 0.03) 40%, transparent);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+}
+.runway-lane {
+  height: 2px; margin-top: -1px; opacity: 0.7;
+  background: repeating-linear-gradient(to left, var(--separator) 0 6px, transparent 6px 16px);
+  background-size: 16px 2px;
+  animation: runwayFlow 0.9s linear infinite;
+}
+@keyframes runwayFlow { from { background-position-x: 0; } to { background-position-x: 16px; } }
+.runway-dock { background: linear-gradient(to left, rgb(var(--accent-rgb) / 0.22), transparent); border-inline-start: 1.5px solid rgb(var(--accent-rgb) / 0.55); }
+.runway-beacon { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgb(var(--accent-rgb) / 0.25); animation: heroPulse 2s ease-out infinite; }
+.runway-car { transition: right 1s linear, top 0.4s var(--ease-ios); will-change: right; box-shadow: 0 6px 16px -8px var(--car), inset 0 1px 0 var(--glass-hi); }
+.runway-near { box-shadow: 0 0 0 1.5px var(--car), 0 0 18px -2px var(--car); animation: runwayNear 1.2s ease-in-out infinite; }
+@keyframes runwayNear { 50% { box-shadow: 0 0 0 1.5px var(--car), 0 0 28px 2px var(--car); } }
+.runway-arrived { border-inline-start: 3px solid var(--accent); }
+
 @media (prefers-reduced-motion: reduce) {
-  .ambient span, .hero-glow span, .hero-pulse { animation: none; }
+  .ambient span, .hero-glow span, .hero-pulse, .runway-lane, .runway-beacon, .runway-near { animation: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
