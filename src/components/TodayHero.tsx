@@ -83,13 +83,13 @@ export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 260, damping: 28 }}
-      className="hero-terrain glass relative mb-6 overflow-hidden rounded-[28px]"
+      className="hero-terrain relative mb-4"
       onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}
     >
       <div className="hero-glow" aria-hidden><span /><span /></div>
 
       {/* Callout cycling through today's tasks */}
-      <div className="relative z-10 px-3 pt-3">
+      <div className="relative z-10 pt-1">
         <AnimatePresence mode="wait" initial={false}>
           <motion.button
             key={current?.id ?? "empty"} type="button"
@@ -104,7 +104,7 @@ export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
       </div>
 
       {/* The living terrain */}
-      <div className="relative -mt-4 h-[210px] sm:h-[240px]" onClick={() => queue.length > 1 && setIdx((i) => (i + 1) % queue.length)}>
+      <div className="relative -mx-4 -mt-6 h-[230px] sm:h-[260px]" onClick={() => queue.length > 1 && setIdx((i) => (i + 1) % queue.length)}>
         <Terrain
           className="hero-terrain-fig absolute inset-x-[-8%] -top-[18%] !aspect-auto h-[136%]"
           play={!reduce}
@@ -114,7 +114,7 @@ export function TodayHero({ greeting, overdue, today, done, allTasks, now }: {
       </div>
 
       {/* Figures */}
-      <div className="relative z-10 px-4 pb-1">
+      <div className="relative z-10 px-1 pb-1">
         <p className="t-sub text-label-2">{greeting} · مهام اليوم</p>
         <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
           <motion.span key={remaining} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="hero-mark t-large num">
@@ -153,7 +153,7 @@ function Spark({ series, sum }: { series: { d: Date; n: number }[]; sum: number 
   const [ex, ey] = pts[pts.length - 1];
   const mid = series[Math.floor(series.length / 2)].d;
   return (
-    <div className="relative z-10 px-2 pb-3">
+    <div className="relative z-10 -mx-2 pb-2">
       <div className="flex items-center justify-between px-2 t-cap text-label-2">
         <span>المنجز · آخر {fmt.num(DAYS)} يوم</span>
         <span className="font-semibold text-label"><bdi className="num">{fmt.num(sum)}</bdi> {plural(sum, ["مهمة", "مهمتان", "مهام", "مهمة"])}</span>

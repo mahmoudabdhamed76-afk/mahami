@@ -78,9 +78,18 @@ function EditorBody({ id, draft }: { id?: string; draft?: Partial<TaskRec> }) {
   }, [day, allDay, settings.defaultReminderTime, fmt]);
 
   const canSave = title.trim().length > 0;
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const [needTitle, setNeedTitle] = useState(false);
 
   const save = () => {
-    if (!canSave) return;
+    if (!canSave) {
+      // Never a dead button: point at what's missing instead
+      setNeedTitle(true);
+      titleRef.current?.focus();
+      if (typeof navigator !== "undefined") navigator.vibrate?.([10, 40, 10]);
+      setTimeout(() => setNeedTitle(false), 1600);
+      return;
+    }
     const patch = {
       title: title.trim(),
       notes: notes.trim() || null,
@@ -125,7 +134,7 @@ function EditorBody({ id, draft }: { id?: string; draft?: Partial<TaskRec> }) {
       <SheetHeader
         title={existing ? "تفاصيل المهمة" : "مهمة جديدة"}
         start={<button type="button" onClick={close} className="px-1 t-body text-accent">إلغاء</button>}
-        end={<button type="button" onClick={save} disabled={!canSave} className="px-1 t-body font-semibold text-accent disabled:opacity-40">{existing ? "تم" : "إضافة"}</button>}
+        end={<button type="button" onClick={save} className={cx("px-1 t-body font-semibold text-accent transition-opacity", !canSave && "opacity-50")}>{existing ? "تم" : "إضافة"}</button>}
       />
       <div className="scroll-y flex-1 px-4 pb-[max(env(safe-area-inset-bottom),24px)]">
         {/* Title + notes */}
@@ -137,9 +146,10 @@ function EditorBody({ id, draft }: { id?: string; draft?: Partial<TaskRec> }) {
               </div>
             )}
             <textarea
+              ref={titleRef}
               data-autofocus={!existing ? true : undefined}
-              value={title} onChange={(e) => setTitle(e.target.value)} placeholder="العنوان" aria-label="العنوان" rows={1}
-              className={cx("flex-1 resize-none bg-transparent t-title3 outline-none placeholder:text-label-3 [field-sizing:content]", existing?.completed && "strike text-label-2")}
+              value={title} onChange={(e) => { setTitle(e.target.value); setNeedTitle(false); }} placeholder={needTitle ? "اكتب عنوان المهمة الأول" : "العنوان"} aria-label="العنوان" rows={1}
+              className={cx("flex-1 resize-none bg-transparent t-title3 outline-none placeholder:text-label-3 [field-sizing:content]", existing?.completed && "strike text-label-2", needTitle && "animate-[shake_.4s] placeholder:!text-ios-red")}
             />
           </div>
           <div className="row-sep px-4 pb-3 pt-2" style={{ ["--sep-inset" as string]: "1rem" }}>
@@ -161,8 +171,12 @@ function EditorBody({ id, draft }: { id?: string; draft?: Partial<TaskRec> }) {
                     const k = dayKey(addDays(today, n as number));
                     return <Pill key={k} on={day === k} onClick={() => setDay(k)}>{l}</Pill>;
                   })}
-                  <input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="اختر التاريخ"
-                    className="h-9 rounded-full bg-fill px-3 t-foot font-semibold outline-none" />
+                  <label className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-fill px-3 t-foot font-semibold">
+                    <CalendarDays size={15} className="text-accent" />
+                    {fmt.date(combine(day, null), { day: "numeric", month: "long", year: "numeric" })}
+                    <input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="اختر التاريخ"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                  </label>
                 </div>
               </motion.div>
             )}
@@ -174,8 +188,12 @@ function EditorBody({ id, draft }: { id?: string; draft?: Partial<TaskRec> }) {
             {time && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                 <div className="px-4 pb-3 ps-[3.75rem]">
-                  <input type="time" value={time} onChange={(e) => e.target.value && setTime(e.target.value)} aria-label="اختر الوقت"
-                    className="h-10 rounded-xl bg-fill px-3 t-callout font-semibold outline-none" />
+                  <label className="relative inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-fill px-3 t-callout font-semibold">
+                    <Clock size={16} className="text-accent" />
+                    {fmt.time(combine(day ?? dayKey(today), time))}
+                    <input type="time" value={time} onChange={(e) => e.target.value && setTime(e.target.value)} aria-label="اختر الوقت"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                  </label>
                 </div>
               </motion.div>
             )}
